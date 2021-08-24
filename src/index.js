@@ -11,11 +11,36 @@ function Welcome(props) {
   );
 }
 
+class Counter extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      number: 0,
+    };
+  }
+
+  handleClick = () => {
+    this.setState({ number: ++this.state.number });
+  };
+
+  render() {
+    return (
+      <div>
+        <p>{this.state.number}</p>
+        <button onClick={this.handleClick}>+</button>
+      </div>
+    );
+  }
+}
+
 function Wrapper() {
   return (
-    <Welcome name="珠峰">
-      <p>x x x 1 2 3</p>
-    </Welcome>
+    <div>
+      <Welcome name="珠峰">
+        <p>x x x 1 2 3</p>
+      </Welcome>
+      <Counter />
+    </div>
   );
 }
 
