@@ -9,8 +9,15 @@ function createDom(vdom) {
   }
 
   let { type, props } = vdom;
-  let dom = document.createElement(type);
+  let dom;
+  if (typeof type === "function") {
+    return mountFuncCom(vdom);
+  } else {
+    dom = document.createElement(type);
+  }
+
   updateProps(dom, props);
+
   if (
     typeof props.children === "string" ||
     typeof props.children === "number"
@@ -23,8 +30,6 @@ function createDom(vdom) {
   } else {
     document.textContent = props.children ? props.children.toString() : "";
   }
-
-  //   vdom.dom = dom;
 
   return dom;
 }
@@ -47,6 +52,12 @@ function reconcilChildren(vdoms, parentDom) {
   for (const vdom of vdoms) {
     render(vdom, parentDom);
   }
+}
+
+function mountFuncCom(vdom) {
+  let { type: FunctionComponent, props } = vdom;
+  let renderVdom = FunctionComponent(props);
+  return createDom(renderVdom);
 }
 
 const ReactDOM = { render };
