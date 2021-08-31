@@ -1,85 +1,93 @@
 import React from "./react";
 import ReactDOM from "./react-dom";
 
-function Welcome(props) {
-  const today = new Date();
-  return (
-    <h1 className="title" style={{ backgroundColor: "green", color: "#ddd" }}>
-      hello, {props.name}. today is {today.toDateString()}
-      {props.children}
-    </h1>
-  );
-}
-
 class Counter extends React.Component {
+  static defaultProps = {
+    name: "计数器",
+  };
+
   constructor(props) {
     super(props);
     this.state = {
       number: 0,
     };
+
+    console.log("constructor");
   }
 
-  handleClick = () => {
-    this.setState(
-      (oldState) => ({
-        number: oldState.number + 1,
-      }),
-      () => {
-        console.log("cb1", this.state.number);
-      }
-    );
-    console.log(this.state.number);
-    this.setState(
-      (oldState) => ({
-        number: oldState.number + 1,
-      }),
-      () => {
-        console.log("cb2", this.state.number);
-      }
-    );
-    console.log(this.state.number);
+  componentWillMount() {
+    console.log("componentWillMount");
+  }
 
-    Promise.resolve().then(() => {
-      this.setState({ number: this.state.number + 1 }, () => {
-        console.log("cb3", this.state.number);
-      });
-      console.log(this.state.number);
-      this.setState({ number: this.state.number + 1 }, () => {
-        console.log("cb4", this.state.number);
-      });
-      console.log(this.state.number);
-    });
+  componentDidMount() {
+    console.log("componentDidMount");
+  }
+
+  handleCounter = (event) => {
+    this.setState({ number: this.state.number + 1 });
   };
 
+  shouldComponentUpdate(nextProps, nextState) {
+    console.log("shouldComponentUpdate");
+    return nextState.number % 2 === 0;
+  }
+
+  componentWillUpdate() {
+    console.log("componentWillUpdate");
+  }
+
+  componentDidUpdate() {
+    console.log("componentDidUpdate");
+  }
+
   render() {
+    console.log("render");
     return (
       <div>
-        {this.state.number < 3 ? (
-          <p>{this.state.number}</p>
-        ) : (
-          <h1>{this.state.number}</h1>
-        )}
-
-        <button onClick={this.handleClick}>
-          <span>+</span>
-        </button>
-        <button onClick={this.handleClick}>
-          <span>+</span>
-        </button>
+        <h1>counter: {this.state.number}</h1>
+        {this.state.number === 4 ? (
+          <ChildCounter count={this.state.number} />
+        ) : null}
+        <button onClick={this.handleCounter}>+</button>
       </div>
     );
   }
 }
 
-function Wrapper() {
-  return (
-    <div>
-      <Welcome name="珠峰">
-        <p>x x x 1 2 3</p>
-      </Welcome>
-      <Counter />
-    </div>
-  );
+class ChildCounter extends React.Component {
+  componentWillMount() {
+    console.log("ChildCounter componentWillMount");
+  }
+
+  componentDidMount() {
+    console.log("ChildCounter componentDidMount");
+  }
+
+  componentWillReceiveProps(nextProps) {
+    console.log("componentWillReceiveProps");
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    console.log("ChildCounter shouldComponentUpdate");
+    return nextState.number % 2 === 0;
+  }
+
+  componentWillUpdate() {
+    console.log("ChildCounter componentWillUpdate");
+  }
+
+  componentDidUpdate() {
+    console.log("ChildCounter componentDidUpdate");
+  }
+
+  componentWillUnmount() {
+    console.log("componentWillUnmount");
+  }
+
+  render() {
+    console.log("ChildCounter render");
+    return <div>count:{this.props.count}</div>;
+  }
 }
 
-ReactDOM.render(<Wrapper />, document.getElementById("root"));
+ReactDOM.render(<Counter />, document.getElementById("root"));

@@ -5,7 +5,7 @@ export let updateQueue = {
   updaters: new Set(),
   batchUpdate() {
     for (const updater of this.updaters) {
-      updater.updateClassComponent();
+      updater.updateComponent();
     }
     this.isBatchingUpdate = false;
   },
@@ -24,21 +24,22 @@ class Updater {
       this.cbs.push(cb);
     }
 
+    this.emitUpdate();
+  }
+
+  emitUpdate(newProps) {
     if (updateQueue.isBatchingUpdate) {
       updateQueue.updaters.add(this);
     } else {
-      this.updateClassComponent();
+      this.updateComponent();
     }
   }
 
-  updateClassComponent() {
+  updateComponent() {
     let { classInstance, pendingStates, cbs } = this;
 
     if (pendingStates.length > 0) {
-      classInstance.state = this.getState();
-      classInstance.forceUpdate();
-      cbs.forEach((cb) => cb());
-      cbs.length = 0;
+      shouldUpdate(classInstance, this.getState());
     }
   }
 
@@ -56,6 +57,20 @@ class Updater {
   }
 }
 
+function shouldUpdate(classInstance, nextState) {
+  classInstance.state = nextState;
+  if (
+    classInstance.shouldComponentUpdate &&
+    !classInstance.shouldComponentUpdate(
+      classInstance.props,
+      classInstance.state
+    )
+  )
+    return;
+
+  classInstance.forceUpdate();
+}
+
 export default class Component {
   static isReactComponent = true;
   constructor(props) {
@@ -70,7 +85,13 @@ export default class Component {
   }
 
   forceUpdate() {
+    if (this.componentWillUpdate) {
+      this.componentWillUpdate();
+    }
     updateClassComponent(this, this.render());
+    if (this.componentDidUpdate) {
+      this.componentWillUpdate();
+    }
   }
 }
 

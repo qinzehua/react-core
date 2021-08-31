@@ -3,13 +3,13 @@ import { addEvent } from "./event";
 function render(vdom, container) {
   const dom = createDom(vdom);
   container.appendChild(dom);
+  dom.componentDidMount && dom.componentDidMount();
 }
 
 export function createDom(vdom) {
   if (typeof vdom === "string" || typeof vdom === "number") {
     return document.createTextNode(vdom);
   }
-
   let { type, props } = vdom;
   let dom;
   if (typeof type === "function") {
@@ -18,8 +18,10 @@ export function createDom(vdom) {
     } else {
       return mountFuncCom(vdom);
     }
-  } else {
+  } else if (typeof type === "string") {
     dom = document.createElement(type);
+  } else {
+    return document.createTextNode(vdom);
   }
 
   updateProps(dom, props);
@@ -72,9 +74,16 @@ function mountFuncCom(vdom) {
 function mountClassCom(vdom) {
   let { type, props } = vdom;
   let classInstance = new type(props);
+  if (classInstance.componentWillMount) {
+    classInstance.componentWillMount();
+  }
   let renderVdom = classInstance.render();
   let dom = createDom(renderVdom);
   classInstance.dom = dom;
+
+  if (classInstance.componentDidMount) {
+    dom.componentDidMount = classInstance.componentDidMount.bind(classInstance);
+  }
   return dom;
 }
 
