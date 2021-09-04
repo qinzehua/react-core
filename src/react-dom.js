@@ -7,9 +7,11 @@ function render(vdom, container) {
 }
 
 export function createDom(vdom) {
+  debugger;
   if (typeof vdom === "string" || typeof vdom === "number") {
     return document.createTextNode(vdom);
   }
+
   let { type, props } = vdom;
   let dom;
   if (typeof type === "function") {
@@ -18,13 +20,11 @@ export function createDom(vdom) {
     } else {
       return mountFuncCom(vdom);
     }
-  } else if (typeof type === "string") {
-    dom = document.createElement(type);
   } else {
-    return document.createTextNode(vdom);
+    dom = document.createElement(type);
   }
 
-  updateProps(dom, props);
+  updateProps(dom, {}, props);
 
   if (
     typeof props.children === "string" ||
@@ -39,10 +39,11 @@ export function createDom(vdom) {
     document.textContent = props.children ? props.children.toString() : "";
   }
 
+  vdom.dom = dom;
   return dom;
 }
 
-function updateProps(dom, props) {
+function updateProps(dom, oldProps, props) {
   for (let key in props) {
     const value = props[key];
     if (key === "children") continue;
@@ -61,28 +62,101 @@ function updateProps(dom, props) {
 
 function reconcilChildren(vdoms, parentDom) {
   for (const vdom of vdoms) {
-    render(vdom, parentDom);
+    if (vdom !== null && vdom !== undefined) {
+      render(vdom, parentDom);
+    }
   }
 }
 
 function mountFuncCom(vdom) {
   let { type: FunctionComponent, props } = vdom;
   let renderVdom = FunctionComponent(props);
+  vdom.oldRenderVdom = renderVdom;
   return createDom(renderVdom);
 }
 
-function mountClassCom(vdom) {
-  let { type, props } = vdom;
+function mountClassCom(classVdom) {
+  let { type, props } = classVdom;
   let classInstance = new type(props);
   if (classInstance.componentWillMount) {
     classInstance.componentWillMount();
   }
   let renderVdom = classInstance.render();
   let dom = createDom(renderVdom);
-  classInstance.dom = dom;
+
+  classInstance.oldRenderVdom = renderVdom;
+  classVdom.classInstance = classInstance;
 
   if (classInstance.componentDidMount) {
     dom.componentDidMount = classInstance.componentDidMount.bind(classInstance);
+  }
+  return dom;
+}
+
+export function compareTwoVdom(parentNode, oldVdom, newVdom, nextDOM) {
+  if (!oldVdom && !newVdom) {
+    return null;
+  } else if (oldVdom && !newVdom) {
+    let currentDom = findDOM(oldVdom);
+    if (currentDom) {
+      parentNode.removeChild(currentDom);
+    }
+
+    if (oldVdom.classInstance && oldVdom.classInstance.componentWillUnmount) {
+      oldVdom.classInstance.componentWillUnmount();
+    }
+
+    return null;
+  } else if (!oldVdom && newVdom) {
+    let newDOM = createDom(newVdom);
+    if (nextDOM) {
+      parentNode.insetBefore(newDOM, nextDOM);
+    } else {
+      parentNode.appendChild(newDOM);
+    }
+
+    return newVdom;
+  } else if (oldVdom && newVdom && oldVdom.type !== newVdom.type) {
+    let oldDom = findDOM(oldVdom);
+    let newDom = createDom(newVdom);
+    parentNode.replaceChild(newDom, oldDom);
+    if (oldVdom.classInstance.componentWillUnmount) {
+      oldVdom.classInstance.componentWillUnmount();
+    }
+    if (oldVdom.classInstance && oldVdom.classInstance.componentWillUnmount) {
+      oldVdom.classInstance.componentWillUnmount();
+    }
+
+    return newDom;
+  } else {
+    updateElement(oldVdom, newVdom);
+    return newVdom;
+  }
+}
+
+function updateElement(oldVdom, newVdom) {
+  if (typeof oldVdom.type === "string") {
+    let currentDOM = (newVdom.dom = oldVdom.dom);
+    updateProps(currentDOM, newVdom.props, newVdom.props);
+    updateChildren(currentDOM, oldVdom.props.children, newVdom.props.children);
+  }
+}
+
+function updateChildren() {
+  
+}
+
+function findDOM(vdom) {
+  let { type } = vdom;
+  let dom;
+  if (typeof type === "function") {
+    if (type.isReactComponent) {
+      dom = findDOM(vdom.classInstance.oldRenderVdom);
+    } else {
+      dom = findDOM(vdom.oldRenderVdom);
+    }
+  } else {
+    dom = vdom.dom;
   }
   return dom;
 }

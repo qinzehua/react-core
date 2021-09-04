@@ -1,4 +1,4 @@
-import { createDom } from "./react-dom";
+import { createDom, compareTwoVdom } from "./react-dom";
 
 export let updateQueue = {
   isBatchingUpdate: false,
@@ -20,10 +20,7 @@ class Updater {
 
   addState(partialState, cb) {
     this.pendingStates.push(partialState);
-    if (typeof cb === "function") {
-      this.cbs.push(cb);
-    }
-
+    if (typeof cb === "function") this.cbs.push(cb);
     this.emitUpdate();
   }
 
@@ -81,6 +78,7 @@ export default class Component {
   render() {}
 
   setState(partialState, cb) {
+    debugger;
     this.updater.addState(partialState, cb);
   }
 
@@ -88,16 +86,20 @@ export default class Component {
     if (this.componentWillUpdate) {
       this.componentWillUpdate();
     }
-    updateClassComponent(this, this.render());
+    let newRenderVdom = this.render();
+    let oldRenderVdom = this.oldRenderVdom;
+    let oldDOM = oldRenderVdom.dom;
+
+    let currentRenderVdom = compareTwoVdom(
+      oldDOM.parentNode,
+      oldRenderVdom,
+      newRenderVdom
+    );
+
+    this.oldRenderVdom = currentRenderVdom;
+
     if (this.componentDidUpdate) {
       this.componentWillUpdate();
     }
   }
-}
-
-function updateClassComponent(classInstance, newVdom) {
-  let oldDom = classInstance.dom;
-  let newDom = createDom(newVdom);
-  oldDom.parentNode.replaceChild(newDom, oldDom);
-  classInstance.dom = newDom;
 }

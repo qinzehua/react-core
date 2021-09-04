@@ -2,17 +2,14 @@ import React from "./react";
 import ReactDOM from "./react-dom";
 
 class Counter extends React.Component {
-  static defaultProps = {
-    name: "计数器",
-  };
-
   constructor(props) {
     super(props);
     this.state = {
       number: 0,
     };
-
-    console.log("constructor");
+    this.handleCounter = (event) => {
+      this.setState({ number: this.state.number + 1 });
+    };
   }
 
   componentWillMount() {
@@ -22,10 +19,6 @@ class Counter extends React.Component {
   componentDidMount() {
     console.log("componentDidMount");
   }
-
-  handleCounter = (event) => {
-    this.setState({ number: this.state.number + 1 });
-  };
 
   shouldComponentUpdate(nextProps, nextState) {
     console.log("shouldComponentUpdate");
@@ -43,11 +36,11 @@ class Counter extends React.Component {
   render() {
     console.log("render");
     return (
-      <div>
-        <h1>counter: {this.state.number}</h1>
-        {this.state.number === 4 ? (
+      <div id={`counter-${this.state.number}`}>
+        <h1 id="title">counter:{this.state.number}</h1>
+        {this.state.number === 2 ? null : (
           <ChildCounter count={this.state.number} />
-        ) : null}
+        )}
         <button onClick={this.handleCounter}>+</button>
       </div>
     );
@@ -86,7 +79,7 @@ class ChildCounter extends React.Component {
 
   render() {
     console.log("ChildCounter render");
-    return <div>count:{this.props.count}</div>;
+    return <h3 id="childcounter">count:{this.props.count}</h3>;
   }
 }
 
