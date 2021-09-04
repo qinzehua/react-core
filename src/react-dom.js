@@ -1,17 +1,22 @@
 import { addEvent } from "./event";
+import { REACT_TEXT } from "./consts";
 
-function render(vdom, container) {
-  const dom = createDom(vdom);
-  container.appendChild(dom);
-  dom.componentDidMount && dom.componentDidMount();
+function render(vdom, parentNode, nextDOM, oldDOM) {
+  let newDOM = createDom(vdom);
+  if (oldDOM) {
+    parentNode.replaceChild(newDOM, oldDOM);
+  } else {
+    if (nextDOM) {
+      parentNode.insertBefore(newDOM, nextDOM);
+    } else {
+      parentNode.appendChild(newDOM);
+    }
+  }
+
+  vdom.componentDidMount && vdom.componentDidMount();
 }
 
 export function createDom(vdom) {
-  debugger;
-  if (typeof vdom === "string" || typeof vdom === "number") {
-    return document.createTextNode(vdom);
-  }
-
   let { type, props } = vdom;
   let dom;
   if (typeof type === "function") {
@@ -20,23 +25,18 @@ export function createDom(vdom) {
     } else {
       return mountFuncCom(vdom);
     }
+  } else if (type === REACT_TEXT) {
+    dom = document.createTextNode(props.content);
   } else {
     dom = document.createElement(type);
   }
 
   updateProps(dom, {}, props);
 
-  if (
-    typeof props.children === "string" ||
-    typeof props.children === "number"
-  ) {
-    dom.textContent = props.children;
-  } else if (typeof props.children === "object" && props.children.type) {
+  if (typeof props.children === "object" && props.children.type) {
     render(props.children, dom);
   } else if (Array.isArray(props.children)) {
     reconcilChildren(props.children, dom);
-  } else {
-    document.textContent = props.children ? props.children.toString() : "";
   }
 
   vdom.dom = dom;
@@ -108,26 +108,13 @@ export function compareTwoVdom(parentNode, oldVdom, newVdom, nextDOM) {
 
     return null;
   } else if (!oldVdom && newVdom) {
-    let newDOM = createDom(newVdom);
-    if (nextDOM) {
-      parentNode.insetBefore(newDOM, nextDOM);
-    } else {
-      parentNode.appendChild(newDOM);
-    }
-
-    return newVdom;
+    render(newVdom, parentNode, nextDOM);
   } else if (oldVdom && newVdom && oldVdom.type !== newVdom.type) {
-    let oldDom = findDOM(oldVdom);
-    let newDom = createDom(newVdom);
-    parentNode.replaceChild(newDom, oldDom);
-    if (oldVdom.classInstance.componentWillUnmount) {
-      oldVdom.classInstance.componentWillUnmount();
-    }
+    render(newVdom, parentNode, nextDOM, findDOM(oldVdom));
     if (oldVdom.classInstance && oldVdom.classInstance.componentWillUnmount) {
       oldVdom.classInstance.componentWillUnmount();
     }
-
-    return newDom;
+    return newVdom;
   } else {
     updateElement(oldVdom, newVdom);
     return newVdom;
@@ -135,15 +122,59 @@ export function compareTwoVdom(parentNode, oldVdom, newVdom, nextDOM) {
 }
 
 function updateElement(oldVdom, newVdom) {
+  // 原生dom， 进行递归对比
   if (typeof oldVdom.type === "string") {
     let currentDOM = (newVdom.dom = oldVdom.dom);
     updateProps(currentDOM, newVdom.props, newVdom.props);
     updateChildren(currentDOM, oldVdom.props.children, newVdom.props.children);
+
+    // 文本节点直接更新
+  } else if (oldVdom.type === REACT_TEXT) {
+    let currentDOM = (newVdom.dom = oldVdom.dom);
+    currentDOM.textContent = newVdom.props.content;
+  } else if (typeof oldVdom.type === "function") {
+    if (oldVdom.type.isReactComponent) {
+      updateClassComponent(oldVdom, newVdom);
+    } else {
+      updateFunctionComponent(oldVdom, newVdom);
+    }
   }
 }
 
-function updateChildren() {
-  
+function updateClassComponent(oldVdom, newVdom) {
+  // 复用类的实例
+  const classInstance = (newVdom.classInstance = oldVdom.classInstance);
+  if (classInstance.componentWillReceiveProps) {
+    classInstance.componentWillReceiveProps();
+  }
+  classInstance.updater.emitUpdate(newVdom.props);
+}
+
+function updateFunctionComponent(oldVdom, newVdom) {
+  let parentDOM = findDOM(oldVdom.oldRenderVdom).parentNode;
+  let { type, props } = newVdom;
+  let newRenderVdom = type(props);
+  newVdom.oldRenderVdom = newRenderVdom;
+
+  compareTwoVdom(parentDOM, oldVdom.oldRenderVdom, newRenderVdom);
+}
+
+function updateChildren(parentDOM, oldVChildren, newVChildren) {
+  oldVChildren = Array.isArray(oldVChildren) ? oldVChildren : [oldVChildren];
+  newVChildren = Array.isArray(newVChildren) ? newVChildren : [newVChildren];
+  let maxLength = Math.max(oldVChildren.length, newVChildren.length);
+
+  for (let i = 0; i < maxLength; i++) {
+    let nextDOM = oldVChildren.find(
+      (item, index) => index > i && item && item.dom
+    );
+    compareTwoVdom(
+      parentDOM,
+      oldVChildren[i],
+      newVChildren[i],
+      nextDOM && nextDOM.dom
+    );
+  }
 }
 
 function findDOM(vdom) {

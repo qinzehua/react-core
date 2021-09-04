@@ -1,4 +1,4 @@
-import { createDom, compareTwoVdom } from "./react-dom";
+import { compareTwoVdom } from "./react-dom";
 
 export let updateQueue = {
   isBatchingUpdate: false,
@@ -25,6 +25,8 @@ class Updater {
   }
 
   emitUpdate(newProps) {
+    this.newProps = newProps;
+
     if (updateQueue.isBatchingUpdate) {
       updateQueue.updaters.add(this);
     } else {
@@ -33,10 +35,10 @@ class Updater {
   }
 
   updateComponent() {
-    let { classInstance, pendingStates, cbs } = this;
+    let { classInstance, pendingStates, newProps } = this;
 
-    if (pendingStates.length > 0) {
-      shouldUpdate(classInstance, this.getState());
+    if (newProps || pendingStates.length > 0) {
+      shouldUpdate(classInstance, newProps, this.getState());
     }
   }
 
@@ -54,7 +56,10 @@ class Updater {
   }
 }
 
-function shouldUpdate(classInstance, nextState) {
+function shouldUpdate(classInstance, newProps, nextState) {
+  if (newProps) {
+    classInstance.props = newProps;
+  }
   classInstance.state = nextState;
   if (
     classInstance.shouldComponentUpdate &&
@@ -78,7 +83,6 @@ export default class Component {
   render() {}
 
   setState(partialState, cb) {
-    debugger;
     this.updater.addState(partialState, cb);
   }
 

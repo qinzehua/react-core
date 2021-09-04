@@ -42,6 +42,7 @@ class Counter extends React.Component {
           <ChildCounter count={this.state.number} />
         )}
         <button onClick={this.handleCounter}>+</button>
+        <FuncCounter count={this.state.number} />
       </div>
     );
   }
@@ -62,7 +63,7 @@ class ChildCounter extends React.Component {
 
   shouldComponentUpdate(nextProps, nextState) {
     console.log("ChildCounter shouldComponentUpdate");
-    return nextState.number % 2 === 0;
+    return nextProps.count % 2 === 0;
   }
 
   componentWillUpdate() {
@@ -79,8 +80,12 @@ class ChildCounter extends React.Component {
 
   render() {
     console.log("ChildCounter render");
-    return <h3 id="childcounter">count:{this.props.count}</h3>;
+    return <h3 id="childcounter">ChildCounter:{this.props.count}</h3>;
   }
+}
+
+function FuncCounter(props) {
+  return <h2>{props.count}</h2>;
 }
 
 ReactDOM.render(<Counter />, document.getElementById("root"));
