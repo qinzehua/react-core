@@ -1,4 +1,4 @@
-import { compareTwoVdom } from "./react-dom";
+import { compareTwoVdom, findDOM } from "./react-dom";
 
 export let updateQueue = {
   isBatchingUpdate: false,
@@ -7,6 +7,7 @@ export let updateQueue = {
     for (const updater of this.updaters) {
       updater.updateComponent();
     }
+    this.updaters.clear();
     this.isBatchingUpdate = false;
   },
 };
@@ -38,11 +39,11 @@ class Updater {
     let { classInstance, pendingStates, newProps } = this;
 
     if (newProps || pendingStates.length > 0) {
-      shouldUpdate(classInstance, newProps, this.getState());
+      shouldUpdate(classInstance, newProps, this.getState(newProps));
     }
   }
 
-  getState() {
+  getState(newProps) {
     let { classInstance, pendingStates } = this;
     let { state } = classInstance;
     pendingStates.forEach((nextState) => {
@@ -52,6 +53,16 @@ class Updater {
       state = { ...state, ...nextState };
     });
     pendingStates = [];
+    if (classInstance.constructor.getDerivedStateFromProps) {
+      let partialState = classInstance.constructor.getDerivedStateFromProps(
+        newProps,
+        classInstance.state
+      );
+
+      if (partialState) {
+        state = { ...state, ...partialState };
+      }
+    }
     return state;
   }
 }
@@ -71,8 +82,9 @@ function shouldUpdate(classInstance, newProps, nextState) {
   if (newProps) {
     classInstance.props = newProps;
   }
+
   classInstance.state = nextState;
-  if (willUpdate) classInstance.forceUpdate();
+  if (willUpdate) classInstance.update();
 }
 
 export default class Component {
@@ -88,10 +100,10 @@ export default class Component {
     this.updater.addState(partialState, cb);
   }
 
-  forceUpdate() {
+  update() {
     let newRenderVdom = this.render();
     let oldRenderVdom = this.oldRenderVdom;
-    let oldDOM = oldRenderVdom.dom;
+    let oldDOM = findDOM(oldRenderVdom);
 
     let currentRenderVdom = compareTwoVdom(
       oldDOM.parentNode,
@@ -104,5 +116,24 @@ export default class Component {
     if (this.componentDidUpdate) {
       this.componentDidUpdate();
     }
+  }
+
+  forceUpdate() {
+    let nextState = this.state;
+    let nextProps = this.props;
+
+    if (this.constructor.getDerivedStateFromProps) {
+      let partialState = this.constructor.getDerivedStateFromProps(
+        nextProps,
+        nextState
+      );
+
+      if (partialState) {
+        nextState = { ...nextState, ...partialState };
+      }
+    }
+
+    this.state = nextState;
+    this.update();
   }
 }

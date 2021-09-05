@@ -1,14 +1,15 @@
 import React from "./react";
 import ReactDOM from "./react-dom";
-
+let PContext = React.createContext();
 class Counter extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       number: 0,
+      age: 30,
     };
     this.handleCounter = (event) => {
-      this.setState({ number: this.state.number + 1 });
+      this.setState({ number: this.state.number + 1, age: 32 });
     };
   }
 
@@ -22,7 +23,7 @@ class Counter extends React.Component {
 
   shouldComponentUpdate(nextProps, nextState) {
     console.log("shouldComponentUpdate", this.state, nextState);
-    return nextState.number % 2 === 0;
+    return true;
   }
 
   componentWillUpdate() {
@@ -35,20 +36,35 @@ class Counter extends React.Component {
 
   render() {
     console.log("render");
+
+    let contextValue = { name: "Person", age: this.state.age };
     return (
-      <div id={`counter-${this.state.number}`}>
-        <h1 id="title">counter:{this.state.number}</h1>
-        {/* {this.state.number === 2 ? null : (
-          <ChildCounter count={this.state.number} />
-        )} */}
-        <button onClick={this.handleCounter}>+</button>
-        {/* <FuncCounter count={this.state.number} /> */}
-      </div>
+      <PContext.Provider value={contextValue}>
+        <div id={`counter-${this.state.number}`}>
+          {this.state.number === 4 ? null : (
+            <ChildCounter count={this.state.number} />
+          )}
+          <button onClick={this.handleCounter}>+</button>
+          {/* <FuncCounter count={this.state.number} /> */}
+        </div>
+      </PContext.Provider>
     );
   }
 }
 
 class ChildCounter extends React.Component {
+  static contextType = PContext;
+
+  domRef = React.createRef();
+  constructor(props) {
+    super(props);
+    this.state = { number: -1 };
+  }
+  static getDerivedStateFromProps(nextProps, preState) {
+    const { count } = nextProps;
+
+    return { number: count * 3 };
+  }
   componentWillMount() {
     console.log("ChildCounter componentWillMount");
   }
@@ -63,7 +79,7 @@ class ChildCounter extends React.Component {
 
   shouldComponentUpdate(nextProps, nextState) {
     console.log("ChildCounter shouldComponentUpdate");
-    return nextProps.count % 2 === 0;
+    return true;
   }
 
   componentWillUpdate() {
@@ -80,7 +96,15 @@ class ChildCounter extends React.Component {
 
   render() {
     console.log("ChildCounter render");
-    return <h3 id="childcounter">ChildCounter:{this.props.count}</h3>;
+    return (
+      <div>
+        <p>
+          name: {this.context.name}, age: {this.context.age}
+        </p>
+        <h2 ref={this.domRef}>pros count:{this.props.count}</h2>
+        <h4>cal number: {this.state.number}</h4>
+      </div>
+    );
   }
 }
 

@@ -17,7 +17,7 @@ function render(vdom, parentNode, nextDOM, oldDOM) {
 }
 
 export function createDom(vdom) {
-  let { type, props } = vdom;
+  let { type, props, ref } = vdom;
   let dom;
   if (typeof type === "function") {
     if (type.isReactComponent) {
@@ -40,6 +40,9 @@ export function createDom(vdom) {
   }
 
   vdom.dom = dom;
+  if (ref) {
+    ref.current = dom;
+  }
   return dom;
 }
 
@@ -78,9 +81,25 @@ function mountFuncCom(vdom) {
 function mountClassCom(classVdom) {
   let { type, props } = classVdom;
   let classInstance = new type(props);
+
+  if (type.contextType) {
+    classInstance.context = type.contextType.Provider._value;
+  }
+
   if (classInstance.componentWillMount) {
     classInstance.componentWillMount();
   }
+
+  if (type.getDerivedStateFromProps) {
+    let partialState = type.getDerivedStateFromProps(
+      classInstance.props,
+      classInstance.state
+    );
+    if (partialState) {
+      classInstance.state = { ...classInstance.state, ...partialState };
+    }
+  }
+
   let renderVdom = classInstance.render();
   let dom = createDom(renderVdom);
 
@@ -177,7 +196,7 @@ function updateChildren(parentDOM, oldVChildren, newVChildren) {
   }
 }
 
-function findDOM(vdom) {
+export function findDOM(vdom) {
   let { type } = vdom;
   let dom;
   if (typeof type === "function") {
