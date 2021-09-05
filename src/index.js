@@ -21,16 +21,16 @@ class Counter extends React.Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    console.log("shouldComponentUpdate");
+    console.log("shouldComponentUpdate", this.state, nextState);
     return nextState.number % 2 === 0;
   }
 
   componentWillUpdate() {
-    console.log("componentWillUpdate");
+    console.log("componentWillUpdate", this.state);
   }
 
   componentDidUpdate() {
-    console.log("componentDidUpdate");
+    console.log("componentDidUpdate", this.state);
   }
 
   render() {
@@ -38,11 +38,11 @@ class Counter extends React.Component {
     return (
       <div id={`counter-${this.state.number}`}>
         <h1 id="title">counter:{this.state.number}</h1>
-        {this.state.number === 2 ? null : (
+        {/* {this.state.number === 2 ? null : (
           <ChildCounter count={this.state.number} />
-        )}
+        )} */}
         <button onClick={this.handleCounter}>+</button>
-        <FuncCounter count={this.state.number} />
+        {/* <FuncCounter count={this.state.number} /> */}
       </div>
     );
   }
