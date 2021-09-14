@@ -1,5 +1,6 @@
-import Component from "./Component";
+import Component, { PureComponent } from "./Component";
 import { wrapToVdom } from "./utils";
+import { useState } from "./react-dom";
 
 function createElement(type, config, children) {
   let ref;
@@ -44,6 +45,21 @@ function createContext() {
   return { Provider, Consumer };
 }
 
-const React = { createElement, Component, createRef, createContext };
+function memo(FunctionComponent) {
+  return class extends PureComponent {
+    render() {
+      return <FunctionComponent {...this.props} />;
+    }
+  };
+}
+
+const React = {
+  createElement,
+  Component,
+  createRef,
+  createContext,
+  useState,
+  memo,
+};
 
 export default React;

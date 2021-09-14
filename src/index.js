@@ -7,6 +7,7 @@ class Counter extends React.Component {
     this.state = {
       number: 0,
       age: 30,
+      name: "bajisian",
     };
     this.handleCounter = (event) => {
       this.setState({ number: this.state.number + 1, age: 32 });
@@ -41,11 +42,11 @@ class Counter extends React.Component {
     return (
       <PContext.Provider value={contextValue}>
         <div id={`counter-${this.state.number}`}>
-          {this.state.number === 4 ? null : (
+          {/* {this.state.number === 4 ? null : (
             <ChildCounter count={this.state.number} />
-          )}
+          )} */}
           <button onClick={this.handleCounter}>+</button>
-          {/* <FuncCounter count={this.state.number} /> */}
+          <MemoFunc name={this.state.name} />
         </div>
       </PContext.Provider>
     );
@@ -108,8 +109,11 @@ class ChildCounter extends React.Component {
   }
 }
 
+let MemoFunc = React.memo(FuncCounter);
+
 function FuncCounter(props) {
-  return <h2>{props.count}</h2>;
+  console.log("FuncCounter");
+  return <h2>{props.name}</h2>;
 }
 
 ReactDOM.render(<Counter />, document.getElementById("root"));

@@ -1,6 +1,8 @@
 import { addEvent } from "./event";
 import { REACT_TEXT } from "./consts";
 
+let scheduleUpdate;
+
 function render(vdom, parentNode, nextDOM, oldDOM) {
   let newDOM = createDom(vdom);
   if (oldDOM) {
@@ -209,6 +211,20 @@ export function findDOM(vdom) {
     dom = vdom.dom;
   }
   return dom;
+}
+
+let hookStates = [];
+let hookIndex = 0;
+
+export function useState(initialState) {
+  hookStates[hookIndex] = hookStates[hookIndex] || initialState;
+  let currentIndex = hookIndex;
+  function setState(newState) {
+    hookStates[currentIndex] = newState;
+    scheduleUpdate();
+  }
+
+  return [hookStates[hookIndex++], setState];
 }
 
 const ReactDOM = { render };
